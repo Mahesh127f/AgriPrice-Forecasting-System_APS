@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgriPrice APS — Forecasting System</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#0a0f0a;--bg2:#0f1a0f;--bg3:#131f13;--card:#0f1a0f;--card2:#162116;--border:rgba(74,222,128,.12);--border2:rgba(74,222,128,.22);--green:#4ade80;--green2:#22c55e;--green3:#16a34a;--gdim:rgba(74,222,128,.08);--gglow:rgba(74,222,128,.15);--amber:#fbbf24;--red:#f87171;--blue:#60a5fa;--text:#e8f5e9;--text2:#a8c5a0;--text3:#6b8f6b;--font:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;--r:10px;--r2:14px;--sb:220px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--green3);border-radius:3px}
+.app{display:flex;min-height:100vh}
+/* SIDEBAR */
+.sidebar{width:var(--sb);min-width:var(--sb);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.logo-row{display:flex;align-items:center;gap:9px;margin-bottom:3px}
+.logo-icon{width:30px;height:30px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-name{font-size:15px;font-weight:700;color:var(--green);letter-spacing:-.3px}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase}
+.nav{padding:10px 0;flex:1}
+.nav-sec{padding:8px 16px 3px;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 16px;font-size:12.5px;color:var(--text2);cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+.nav-item:hover{background:var(--gdim);color:var(--text)}
+.nav-item.active{background:var(--gglow);color:var(--green);border-left-color:var(--green);font-weight:500}
+.nav-item svg{width:14px;height:14px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.nb{margin-left:auto;background:var(--green);color:var(--bg);font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px}
+.sb-footer{padding:12px 16px;border-top:1px solid var(--border);margin-top:auto}
+.u-card{display:flex;align-items:center;gap:9px}
+.u-av{width:32px;height:32px;border-radius:50%;background:var(--green3);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 22px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.pg-title{font-size:15px;font-weight:600;color:var(--text)}
+.pg-crumb{font-size:11px;color:var(--text3);margin-left:12px}
+.tb-right{display:flex;align-items:center;gap:8px}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.stxt{font-size:11px;color:var(--green);font-weight:500}
+.tbadge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600;border:1px solid}
+.b-warn{background:rgba(251,191,36,.1);color:var(--amber);border-color:rgba(251,191,36,.3)}
+.b-loc{background:rgba(96,165,250,.1);color:var(--blue);border-color:rgba(96,165,250,.2)}
+.tb-btn{background:none;border:1px solid var(--border2);color:var(--text2);padding:5px 12px;border-radius:var(--r);cursor:pointer;font-size:11px;font-family:var(--font);transition:all .15s}
+.tb-btn:hover{background:var(--gdim);color:var(--green);border-color:var(--green)}
+/* CONTENT */
+.content{flex:1;padding:20px 22px;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:16px}
+.ctitle{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px}
+/* METRICS */
+.mrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:16px}
+.mc{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;position:relative;overflow:hidden}
+.mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--green);opacity:.4}
+.mc.warn::before{background:var(--amber)}.mc.info::before{background:var(--blue)}.mc.danger::before{background:var(--red)}
+.ml{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:5px}
+.mv{font-size:22px;font-weight:700;color:var(--text);font-family:var(--mono);line-height:1;margin-bottom:4px}
+.ms{font-size:11px}
+.up{color:var(--green)}.down{color:var(--red)}.neu{color:var(--text3)}.warn-c{color:var(--amber)}
+/* SELECTORS */
+.selrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end}
+.sg{display:flex;flex-direction:column;gap:4px}
+.sl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+.sb{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:var(--r);font-size:12px;font-family:var(--font);cursor:pointer;min-width:130px;max-width:190px;outline:none;transition:border-color .15s}
+.sb:focus{border-color:var(--green)}.sb option{background:var(--bg3)}
+.hpills{display:flex;gap:5px}
+.hp{font-size:11px;padding:6px 12px;border-radius:20px;border:1px solid var(--border2);cursor:pointer;background:none;color:var(--text2);font-family:var(--font);transition:all .15s;font-weight:500}
+.hp:hover{border-color:var(--green);color:var(--green)}
+.hp.active{background:var(--green);color:var(--bg);border-color:var(--green);font-weight:600}
+/* GRIDS */
+.g2{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.g2e{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:14px}
+.cw{position:relative;height:190px}
+/* REC */
+.ri{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border)}
+.ri:last-child{border-bottom:none}
+.rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.d-s{background:var(--green)}.d-h{background:var(--amber)}.d-w{background:var(--red)}
+.rb{flex:1;min-width:0}
+.rn{font-size:12px;font-weight:600;color:var(--text)}
+.rd{font-size:11px;color:var(--text3);margin-top:1px}
+.rtag{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600;white-space:nowrap;flex-shrink:0}
+.t-s{background:rgba(74,222,128,.1);color:var(--green)}
+.t-h{background:rgba(251,191,36,.1);color:var(--amber)}
+.t-w{background:rgba(248,113,113,.1);color:var(--red)}
+.rp{font-size:12px;font-weight:700;font-family:var(--mono);margin-left:6px;white-space:nowrap}
+/* VOL BARS */
+.vrow{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.vlbl{font-size:11px;color:var(--text2);width:75px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vtrk{flex:1;height:5px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
+.vfil{height:100%;border-radius:3px;transition:width .5s ease}
+.vl{background:var(--green)}.vm{background:var(--amber)}.vh{background:var(--red)}
+.vpc{font-size:10px;color:var(--text3);width:26px;text-align:right;font-family:var(--mono)}
+/* WEATHER */
+.wr{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px}
+.wr:last-child{border-bottom:none}
+.wl{color:var(--text2);min-width:85px}
+.wv{font-weight:600;color:var(--text);font-family:var(--mono);font-size:11px}
+.wi{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600}
+.wi-p{background:rgba(74,222,128,.1);color:var(--green)}
+.wi-n{background:rgba(248,113,113,.1);color:var(--red)}
+.wi-u{background:rgba(255,255,255,.05);color:var(--text3)}
+/* CHAT */
+.clang{display:flex;gap:5px;margin-bottom:10px}
+.lb{font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--border2);cursor:pointer;background:none;color:var(--text2);font-family:var(--font);transition:all .15s}
+.lb.active{background:var(--gglow);color:var(--green);border-color:var(--green);font-weight:600}
+.cbox{height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;margin-bottom:10px;padding-right:3px}
+.bbl{padding:8px 11px;border-radius:10px;font-size:12px;max-width:90%;line-height:1.5}
+.b-bot{background:var(--bg3);color:var(--text);border:1px solid var(--border);align-self:flex-start}
+.b-usr{background:var(--green3);color:#fff;align-self:flex-end}
+.cinp-row{display:flex;gap:7px}
+.cinp{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:var(--r);font-size:12px;font-family:var(--font);outline:none;transition:border-color .15s}
+.cinp:focus{border-color:var(--green)}
+.csend{background:var(--green);color:var(--bg);border:none;padding:8px 15px;border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);transition:opacity .15s}
+.csend:hover{opacity:.85}
+/* CALC */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.ig{display:flex;flex-direction:column;gap:4px}
+.il{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+.ci{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:8px 11px;border-radius:var(--r);font-size:13px;font-family:var(--mono);outline:none;transition:border-color .15s;width:100%}
+.ci:focus{border-color:var(--green)}
+.cbtn{background:var(--green);color:var(--bg);border:none;padding:10px 22px;border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font);transition:opacity .15s;width:100%}
+.cbtn:hover{opacity:.85}
+.presult{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:18px;text-align:center;margin-top:12px}
+.plbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.pval{font-size:32px;font-weight:700;font-family:var(--mono)}
+.pbr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.pbi{background:var(--bg2);border-radius:var(--r);padding:9px 11px;text-align:center}
+.pbl{font-size:10px;color:var(--text3);margin-bottom:3px}
+.pbv{font-size:13px;font-weight:700;font-family:var(--mono);color:var(--text)}
+/* MSP */
+.msp-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.msp-row:last-child{border-bottom:none}
+.msp-crop{font-size:12px;font-weight:600;color:var(--text);width:130px;flex-shrink:0}
+.msp-bw{flex:1;position:relative;height:18px;background:rgba(255,255,255,.04);border-radius:3px;overflow:visible}
+.msp-bm{height:100%;border-radius:3px;position:absolute;top:0;left:0;transition:width .6s}
+.msp-ln{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--amber);border-radius:1px;z-index:2}
+.msp-ps{display:flex;flex-direction:column;align-items:flex-end;gap:1px;width:85px;flex-shrink:0}
+.msp-mp{font-size:12px;font-weight:700;font-family:var(--mono)}
+.msp-gp{font-size:10px;color:var(--amber);font-family:var(--mono)}
+.msp-st{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600;white-space:nowrap}
+.msp-a{background:rgba(74,222,128,.1);color:var(--green)}
+.msp-b{background:rgba(248,113,113,.1);color:var(--red)}
+/* ALERTS */
+.aitem{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;transition:border-color .15s}
+.aitem:hover{border-color:var(--border2)}
+.aico{width:30px;height:30px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-g{background:rgba(74,222,128,.1);color:var(--green)}
+.ai-a{background:rgba(251,191,36,.1);color:var(--amber)}
+.ai-r{background:rgba(248,113,113,.1);color:var(--red)}
+.abdy{flex:1}
+.atitle{font-size:12px;font-weight:600;color:var(--text)}
+.adesc{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4}
+.atime{font-size:10px;color:var(--text3);margin-top:3px}
+.adel{background:none;border:1px solid var(--border);color:var(--text3);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font);transition:all .15s;flex-shrink:0}
+.adel:hover{border-color:var(--red);color:var(--red)}
+/* REPORTS */
+.rcard{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:9px;transition:border-color .15s;cursor:pointer}
+.rcard:hover{border-color:var(--green)}
+.rico{width:36px;height:36px;background:var(--gdim);border-radius:var(--r);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.rbdy{flex:1}
+.rname{font-size:12px;font-weight:600;color:var(--text)}
+.rmeta{font-size:11px;color:var(--text3);margin-top:1px}
+.rdl{background:none;border:1px solid var(--border2);color:var(--green);padding:5px 12px;border-radius:8px;cursor:pointer;font-size:11px;font-family:var(--font);font-weight:600;transition:all .15s}
+.rdl:hover{background:var(--green);color:var(--bg)}
+/* ADMIN */
+.astats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:16px}
+.asc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:13px 15px;text-align:center}
+.ascv{font-size:26px;font-weight:700;font-family:var(--mono);color:var(--green);margin-bottom:3px}
+.ascl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px}
+.upzone{border:2px dashed var(--border2);border-radius:var(--r2);padding:32px 20px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:14px}
+.upzone:hover{border-color:var(--green);background:var(--gdim)}
+.actr{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);font-size:11px}
+.actr:last-child{border-bottom:none}
+.adot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.atxt{flex:1;color:var(--text2)}
+.atm{color:var(--text3);font-family:var(--mono);font-size:10px}
+/* MAP */
+#leafletMap{height:360px;border-radius:var(--r2);border:1px solid var(--border)}
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--card2);border:1px solid var(--green);color:var(--text);padding:11px 16px;border-radius:var(--r);font-size:12px;font-weight:500;z-index:9999;transform:translateY(70px);opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+/* LOADER */
+.loader{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-left:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* COMPARE TABLE */
+.ctbl{width:100%;border-collapse:collapse;font-size:12px}
+.ctbl th{padding:9px 11px;background:var(--bg3);color:var(--green);text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border)}
+.ctbl td{padding:8px 11px;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px}
+.ctbl tr:hover td{background:var(--gdim)}
+/* NEWS */
+.ni{padding:9px 11px;background:var(--bg3);border-radius:var(--r);margin-bottom:8px}
+.nt{font-size:11px;color:var(--text);font-weight:600;margin-bottom:3px}
+.nd{font-size:10px;color:var(--text3)}
+/* RESPONSIVE */
+@media(max-width:900px){
+  :root{--sb:54px}
+  .nav-item span,.nb,.logo-name,.logo-sub,.sb-footer .u-name,.sb-footer .u-role,.nav-sec{display:none}
+  .logo-row{justify-content:center}
+  .mrow{grid-template-columns:1fr 1fr}
+  .g2,.g3,.g2e{grid-template-columns:1fr}
+  .astats{grid-template-columns:1fr 1fr}
+  .cgrid{grid-template-columns:1fr}
+}
+@media(max-width:600px){.mrow{grid-template-columns:1fr 1fr}.selrow{flex-direction:column}.sb,.ci{min-width:100%;max-width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="logo-row">
+      <div class="logo-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2C9 2 4 5 4 10C4 12.76 6.24 15 9 15C11.76 15 14 12.76 14 10C14 5 9 2 9 2Z" fill="#0a0f0a"/><path d="M9 6V15M6 9L9 6L12 9" stroke="#0a0f0a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <span class="logo-name">AgriPrice</span>
+    </div>
+    <div class="logo-sub">Forecasting System</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-sec">Main</div>
+    <div class="nav-item active" onclick="showPage('dashboard',this)"><svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="2" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="2" y="9" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg><span>Dashboard</span></div>
+    <div class="nav-item" onclick="showPage('forecast',this)"><svg viewBox="0 0 16 16" fill="none"><path d="M2 12L6 7L9 10L13 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 4H13V6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Price Forecast</span></div>
+    <div class="nav-item" onclick="showPage('map',this)"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M8 2C5.24 2 3 4.24 3 7C3 10.5 8 14 8 14C8 14 13 10.5 13 7C13 4.24 10.76 2 8 2Z" stroke="currentColor" stroke-width="1.3"/></svg><span>Mandi Map</span></div>
+    <div class="nav-item" onclick="showPage('compare',this)"><svg viewBox="0 0 16 16" fill="none"><path d="M4 12V8M8 12V4M12 12V6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Compare Crops</span></div>
+    <div class="nav-sec">Tools</div>
+    <div class="nav-item" onclick="showPage('chatbot',this)"><svg viewBox="0 0 16 16" fill="none"><path d="M2 3C2 2.45 2.45 2 3 2H13C13.55 2 14 2.45 14 3V10C14 10.55 13.55 11 13 11H6L3 14V11H3C2.45 11 2 10.55 2 10V3Z" stroke="currentColor" stroke-width="1.3"/></svg><span>AI Assistant</span></div>
+    <div class="nav-item" onclick="showPage('profit',this)"><svg viewBox="0 0 16 16" fill="none"><path d="M8 2V14M5 5H9.5C10.33 5 11 5.67 11 6.5C11 7.33 10.33 8 9.5 8H5V8H10C10.83 8 11.5 8.67 11.5 9.5C11.5 10.33 10.83 11 10 11H5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Profit Calculator</span></div>
+    <div class="nav-item" onclick="showPage('msp',this)"><svg viewBox="0 0 16 16" fill="none"><path d="M2 8H14M2 4H10M2 12H12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>MSP Tracker</span></div>
+    <div class="nav-sec">Account</div>
+    <div class="nav-item" onclick="showPage('alerts',this)"><svg viewBox="0 0 16 16" fill="none"><path d="M8 2C8 2 4 4 4 8V11H12V8C12 4 8 2 8 2Z" stroke="currentColor" stroke-width="1.3"/><path d="M6 11V12C6 13.1 6.9 14 8 14C9.1 14 10 13.1 10 12V11" stroke="currentColor" stroke-width="1.3"/></svg><span>Alerts</span><span class="nb" id="alertBadge">3</span></div>
+    <div class="nav-item" onclick="showPage('reports',this)"><svg viewBox="0 0 16 16" fill="none"><path d="M4 2H10L13 5V14H4V2Z" stroke="currentColor" stroke-width="1.3"/><path d="M10 2V5H13" stroke="currentColor" stroke-width="1.3"/><path d="M6 8H10M6 10H9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Reports</span></div>
+    <div class="nav-item" onclick="showPage('admin',this)"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M3 14C3 11.24 5.24 9 8 9C10.76 9 13 11.24 13 14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Admin Panel</span></div>
+  </nav>
+  <div class="sb-footer">
+    <div class="u-card">
+      <div class="u-av" id="userAv">RK</div>
+      <div><div style="font-size:12px;font-weight:600;color:var(--text)" id="userName">Ramesh Kumar</div><div style="font-size:10px;color:var(--text3)" id="userRole">Farmer · Agra, UP</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center">
+      <span class="pg-title" id="pgTitle">Dashboard</span>
+      <span class="pg-crumb" id="pgCrumb">Overview</span>
+    </div>
+    <div class="tb-right">
+      <div class="sdot"></div><span class="stxt">Market Open</span>
+      <span class="tbadge b-loc" id="locBadge">Agra, UP</span>
+      <span class="tbadge b-warn" id="alertTopBadge">3 Alerts</span>
+      <button class="tb-btn" onclick="downloadReport()">Export CSV</button>
+      <button class="tb-btn" onclick="showPage('admin',document.querySelector('.nav-item:last-child'))">API Docs ↗</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- ══ DASHBOARD ══ -->
+  <div class="page active" id="page-dashboard">
+    <div class="selrow">
+      <div class="sg"><label class="sl">Category</label><select class="sb" id="dCat" onchange="onDCatChange()"></select></div>
+      <div class="sg"><label class="sl">Crop</label><select class="sb" id="dCrop" onchange="onDChange()"></select></div>
+      <div class="sg"><label class="sl">State</label><select class="sb" id="dState" onchange="onDStateChange()"></select></div>
+      <div class="sg"><label class="sl">Mandi</label><select class="sb" id="dMandi" onchange="onDChange()"></select></div>
+      <div class="sg"><label class="sl">Forecast</label>
+        <div class="hpills">
+          <button class="hp active" onclick="setH(this,'1D')">1 Day</button>
+          <button class="hp" onclick="setH(this,'7D')">7 Days</button>
+          <button class="hp" onclick="setH(this,'30D')">30 Days</button>
+        </div>
+      </div>
+    </div>
+    <div class="mrow">
+      <div class="mc"><div class="ml">Today's Price</div><div class="mv" id="dPrice">—</div><div class="ms" id="dChg">—</div></div>
+      <div class="mc"><div class="ml">Forecast Price</div><div class="mv" id="dFc">—</div><div class="ms" id="dFcChg">—</div></div>
+      <div class="mc info"><div class="ml">Model Accuracy</div><div class="mv" id="dAcc">—</div><div class="ms neu" id="dMetrics">—</div></div>
+      <div class="mc warn"><div class="ml">Volatility</div><div class="mv" id="dVol">—</div><div class="ms neu" id="dVolSub">—</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ctitle" id="dChartTitle">Price Trend</div><div class="cw"><canvas id="dashChart"></canvas></div></div>
+      <div class="card"><div class="ctitle">Smart Recommendations</div><div id="recList"><div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">Loading...</div></div></div>
+    </div>
+    <div class="g3">
+      <div class="card"><div class="ctitle">Volatility Index</div><div id="volBars"></div></div>
+      <div class="card"><div class="ctitle">Weather Impact</div><div id="weatherBox"></div></div>
+      <div class="card"><div class="ctitle">Market News</div><div id="newsBox"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ FORECAST ══ -->
+  <div class="page" id="page-forecast">
+    <div class="selrow">
+      <div class="sg"><label class="sl">Category</label><select class="sb" id="fCat" onchange="onFCatChange()"></select></div>
+      <div class="sg"><label class="sl">Crop</label><select class="sb" id="fCrop" onchange="loadForecast()"></select></div>
+      <div class="sg"><label class="sl">State</label><select class="sb" id="fState" onchange="onFStateChange()"></select></div>
+      <div class="sg"><label class="sl">Mandi</label><select class="sb" id="fMandi" onchange="loadForecast()"></select></div>
+      <div class="sg"><label class="sl">Model</label>
+        <select class="sb" id="fModel" onchange="loadForecast()">
+          <option value="random_forest">Random Forest</option>
+          <option value="lstm">LSTM</option>
+          <option value="linear_regression">Linear Regression</option>
+        </select>
+      </div>
+    </div>
+    <div class="mrow">
+      <div class="mc"><div class="ml">Tomorrow</div><div class="mv" id="f1d">—</div><div class="ms up" id="f1c">—</div></div>
+      <div class="mc"><div class="ml">Next Week</div><div class="mv" id="f7d">—</div><div class="ms up" id="f7c">—</div></div>
+      <div class="mc"><div class="ml">Next Month</div><div class="mv" id="f30d">—</div><div class="ms up" id="f30c">—</div></div>
+      <div class="mc info"><div class="ml">Model Confidence</div><div class="mv" id="fConf">—</div><div class="ms neu" id="fMetrics">—</div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px"><div class="ctitle" id="fChartTitle">30-Day Forecast</div><div style="height:250px;position:relative"><canvas id="fcChart"></canvas></div></div>
+    <div class="g3">
+      <div class="card"><div class="ctitle">Supply-Demand</div>
+        <div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--text2)">Supply</span><span style="font-size:11px;font-family:var(--mono);color:var(--text)" id="supplyPct">—</span></div><div style="height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden"><div id="supplyBar" style="height:100%;border-radius:4px;background:var(--green);width:0;transition:width .5s"></div></div></div>
+        <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:var(--text2)">Demand</span><span style="font-size:11px;font-family:var(--mono);color:var(--text)" id="demandPct">—</span></div><div style="height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden"><div id="demandBar" style="height:100%;border-radius:4px;background:var(--amber);width:0;transition:width .5s"></div></div></div>
+        <div style="padding:10px;background:var(--bg3);border-radius:var(--r);text-align:center"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">MARKET STATUS</div><div id="sdStatus" style="font-size:12px;font-weight:600;color:var(--amber)">—</div></div>
+      </div>
+      <div class="card"><div class="ctitle">Recommendation</div><div id="fcRec" style="padding:8px 0;font-size:13px;color:var(--text);line-height:1.6">—</div></div>
+      <div class="card"><div class="ctitle">Model Metrics</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <div style="background:var(--bg3);border-radius:var(--r);padding:11px;text-align:center"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">MAE</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--green)" id="mMAE">—</div></div>
+          <div style="background:var(--bg3);border-radius:var(--r);padding:11px;text-align:center"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">RMSE</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--green)" id="mRMSE">—</div></div>
+          <div style="background:var(--bg3);border-radius:var(--r);padding:11px;text-align:center"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">R² Score</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--blue)" id="mR2">—</div></div>
+          <div style="background:var(--bg3);border-radius:var(--r);padding:11px;text-align:center"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Accuracy</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:var(--green)" id="mAcc">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MAP ══ -->
+  <div class="page" id="page-map">
+    <div class="selrow">
+      <div class="sg"><label class="sl">Crop</label><select class="sb" id="mapCrop" onchange="loadMap()"><option>Onion</option><option>Tomato</option><option>Potato</option><option>Wheat</option><option>Rice (Paddy)</option><option>Onion</option></select></div>
+      <div class="sg"><label class="sl">View</label><select class="sb"><option>Price Heatmap</option><option>Arrivals (Tonnes)</option><option>Price vs MSP</option></select></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ctitle" id="mapTitle">India — Mandi Price Map (Onion)</div><div id="leafletMap"></div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:11px">
+          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><div style="width:10px;height:10px;border-radius:50%;background:var(--green)"></div>High (₹3000+)</div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><div style="width:10px;height:10px;border-radius:50%;background:var(--amber)"></div>Medium (₹1500–3000)</div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><div style="width:10px;height:10px;border-radius:50%;background:var(--red)"></div>Low (&lt;₹1500)</div>
+        </div>
+      </div>
+      <div class="card"><div class="ctitle">Top Mandis</div><div id="mandiList"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ COMPARE ══ -->
+  <div class="page" id="page-compare">
+    <div class="selrow">
+      <div class="sg"><label class="sl">State</label><select class="sb" id="cState" onchange="loadCompare()"></select></div>
+      <div class="sg"><label class="sl">Period</label><select class="sb"><option>This Week</option><option>This Month</option><option>Last 3 Months</option></select></div>
+    </div>
+    <div class="card" style="margin-bottom:14px"><div class="ctitle">Multi-Crop Price Trend</div><div style="height:230px;position:relative"><canvas id="cmpChart"></canvas></div></div>
+    <div class="card"><div class="ctitle">Crop Price Table</div><div style="overflow-x:auto"><table class="ctbl"><thead><tr><th>Crop</th><th>Category</th><th>Price (₹/qtl)</th><th>7D Change</th><th>30D Change</th><th>Volatility</th><th>MSP</th><th>Recommendation</th></tr></thead><tbody id="cmpBody"></tbody></table></div></div>
+  </div>
+
+  <!-- ══ CHATBOT ══ -->
+  <div class="page" id="page-chatbot">
+    <div class="g2e">
+      <div class="card">
+        <div class="ctitle">AI Farm Assistant</div>
+        <div class="clang">
+          <button class="lb active" onclick="setLang(this,'en')">English</button>
+          <button class="lb" onclick="setLang(this,'hi')">हिंदी</button>
+        </div>
+        <div class="cbox" id="chatBox">
+          <div class="bbl b-bot" id="greetMsg">Namaste! I'm your AI farm assistant. Ask me about crop prices, best time to sell, weather impact, or mandi rates.</div>
+        </div>
+        <div class="cinp-row">
+          <input class="cinp" id="chatInp" placeholder="Ask about any crop or mandi..." onkeydown="if(event.key==='Enter')doChat()">
+          <button class="csend" onclick="doChat()">Send</button>
+        </div>
+      </div>
+      <div class="card"><div class="ctitle">Quick Questions</div><div style="display:flex;flex-direction:column;gap:7px" id="quickQs"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ PROFIT ══ -->
+  <div class="page" id="page-profit">
+    <div class="g2e">
+      <div class="card"><div class="ctitle">Profit Calculator</div>
+        <div class="cgrid">
+          <div class="ig"><label class="il">Crop</label><select class="ci" id="pCrop" onchange="calcProfit()"></select></div>
+          <div class="ig"><label class="il">Quantity (Quintals)</label><input class="ci" type="number" id="pQty" value="50" min="1" oninput="calcProfit()"></div>
+          <div class="ig"><label class="il">Production Cost (₹/qtl)</label><input class="ci" type="number" id="pCost" value="1200" oninput="calcProfit()"></div>
+          <div class="ig"><label class="il">Transport Cost (₹ total)</label><input class="ci" type="number" id="pTransport" value="2000" oninput="calcProfit()"></div>
+          <div class="ig"><label class="il">Storage Days</label><input class="ci" type="number" id="pStoreDays" value="0" min="0" max="60" oninput="calcProfit()"></div>
+          <div class="ig"><label class="il">Storage Cost (₹/qtl/day)</label><input class="ci" type="number" id="pStoreCost" value="15" oninput="calcProfit()"></div>
+        </div>
+        <button class="cbtn" onclick="calcProfit()">Calculate Profit</button>
+        <div class="presult">
+          <div class="plbl">Estimated Net Profit</div>
+          <div class="pval up" id="profitVal">₹—</div>
+          <div class="pbr">
+            <div class="pbi"><div class="pbl">Revenue</div><div class="pbv" id="pRev">—</div></div>
+            <div class="pbi"><div class="pbl">Total Cost</div><div class="pbv down" id="pCostOut">—</div></div>
+            <div class="pbi"><div class="pbl">Margin %</div><div class="pbv" id="pMargin">—</div></div>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:11px;background:var(--bg3);border-radius:var(--r)">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.8px">AI Recommendation</div>
+          <div style="font-size:12px;color:var(--green);font-weight:500" id="profitRec">—</div>
+        </div>
+      </div>
+      <div class="card"><div class="ctitle">Sell Now vs Wait — Price Forecast</div><div style="height:240px;position:relative"><canvas id="profitChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ══ MSP ══ -->
+  <div class="page" id="page-msp">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg3);border-radius:var(--r);margin-bottom:14px">
+        <div style="width:10px;height:10px;background:var(--amber);border-radius:2px;flex-shrink:0"></div>
+        <span style="font-size:11px;color:var(--text2)">Yellow line = Government MSP 2024-25. Bar = Current market price. Green = above MSP, Red = below MSP.</span>
+      </div>
+      <div class="ctitle">MSP vs Market Price — All Crops</div>
+      <div id="mspList"></div>
+    </div>
+  </div>
+
+  <!-- ══ ALERTS ══ -->
+  <div class="page" id="page-alerts">
+    <div class="card" style="margin-bottom:14px">
+      <div class="ctitle">Set New Alert</div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end">
+        <select class="sb" id="aCrop" style="min-width:150px"></select>
+        <select class="sb" id="aType" style="min-width:150px"><option>Price rises above</option><option>Price falls below</option><option>Price changes by</option></select>
+        <input class="ci" type="number" id="aThresh" placeholder="₹ value" style="max-width:130px;min-width:100px">
+        <button class="cbtn" style="width:auto;padding:8px 20px" onclick="addAlert()">Add Alert</button>
+      </div>
+    </div>
+    <div id="alertsList"></div>
+  </div>
+
+  <!-- ══ REPORTS ══ -->
+  <div class="page" id="page-reports">
+    <div class="g2e">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">Available Reports</div>
+        <div id="reportsList"></div>
+      </div>
+      <div class="card"><div class="ctitle">Generate Custom Report</div>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <div class="ig"><label class="il">Report Type</label><select class="ci" id="rType"><option>Price Summary</option><option>Forecast Report</option><option>Market Analysis</option><option>Crop Comparison</option><option>MSP Analysis</option></select></div>
+          <div class="ig"><label class="il">Crop</label><select class="ci" id="rCrop"></select></div>
+          <div class="ig"><label class="il">Date Range</label><select class="ci"><option>Last 7 days</option><option>Last 30 days</option><option>Last 3 months</option><option>Last 1 year</option></select></div>
+          <div class="ig"><label class="il">Format</label><select class="ci" id="rFmt"><option>CSV</option></select></div>
+          <button class="cbtn" onclick="generateReport()">Generate &amp; Download</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ADMIN ══ -->
+  <div class="page" id="page-admin">
+    <div class="astats" id="adminStats"></div>
+    <div class="g2e">
+      <div>
+        <div class="upzone" onclick="showToast('Upload feature: connect to backend /api/admin/upload in production')">
+          <div style="font-size:34px;margin-bottom:9px">📂</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Upload Dataset</div>
+          <div style="font-size:11px;color:var(--text3)">Drag & drop CSV / Excel file here or click to browse<br>Supports Agmarknet, custom formats</div>
+        </div>
+        <div class="card"><div class="ctitle">Model Performance Over Time</div><div style="height:180px;position:relative"><canvas id="adminChart"></canvas></div></div>
+      </div>
+      <div class="card"><div class="ctitle">Recent Activity</div><div id="activityLog"></div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="ctitle">API Endpoints Reference</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text2);display:flex;flex-direction:column;gap:6px">
+        <div><span style="color:var(--green)">GET</span> <span style="color:var(--blue)">/api/prices/current</span>?crop=Onion&amp;mandi=Agra</div>
+        <div><span style="color:var(--green)">GET</span> <span style="color:var(--blue)">/api/forecast/predict</span>?crop=Onion&amp;mandi=Agra&amp;days=30&amp;model=random_forest</div>
+        <div><span style="color:var(--green)">GET</span> <span style="color:var(--blue)">/api/prices/historical</span>?crop=Tomato&amp;mandi=Nashik&amp;days=90</div>
+        <div><span style="color:var(--green)">GET</span> <span style="color:var(--blue)">/api/prices/all-mandis</span>?crop=Onion</div>
+        <div><span style="color:var(--amber)">POST</span> <span style="color:var(--blue)">/api/chatbot/chat</span> {"message":"...","lang":"en"}</div>
+        <div><span style="color:var(--green)">GET</span> <span style="color:var(--blue)">/api/prices/msp</span> — MSP tracker</div>
+        <div><span style="color:var(--green)">GET</span> <span style="color:var(--blue)">/api/reports/download</span>?crop=All — CSV download</div>
+        <div><span style="color:var(--amber)">POST</span> <span style="color:var(--blue)">/api/auth/login</span> — {"email":"...","password":"..."}</div>
+        <div style="margin-top:4px;color:var(--text3)">Full docs: <span style="color:var(--green)">http://localhost:8000/docs</span></div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────
+const API = 'http://localhost:8000/api';
+let dashChart=null,fcChart=null,cmpChart=null,profitChartObj=null,adminChart=null;
+let currentLang='en', leafletMap=null, mapMarkers=[];
+let allCrops=[], cropsByCategory={}, allStates=[];
+
+// ── BOOT ────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadMasterData();
+  initSelects();
+  loadDashboard();
+  loadWeather();
+  loadAlerts();
+  loadReports();
+  renderQuickQs();
+  initProfitCrop();
+  loadMSP();
+  renderNews();
+});
+
+async function api(path) {
+  try {
+    const r = await fetch(API + path);
+    if (!r.ok) throw new Error(r.statusText);
+    return await r.json();
+  } catch(e) {
+    console.warn('API error:', path, e.message);
+    return null;
+  }
+}
+
+async function apiPost(path, body) {
+  try {
+    const r = await fetch(API + path, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+// ── MASTER DATA ─────────────────────────────────────────────
+async function loadMasterData() {
+  const data = await api('/prices/crops');
+  if (data) {
+    cropsByCategory = data.categories || {};
+    allCrops = data.all || [];
+  }
+  const states = await api('/prices/states');
+  if (states) allStates = states.states || [];
+}
+
+function initSelects() {
+  const cats = [{v:'veg',l:'Vegetables'},{v:'fruit',l:'Fruits'},{v:'pulse',l:'Pulses & Legumes'},{v:'spice',l:'Spices'},{v:'cereal',l:'Cereals & Oilseeds'}];
+  ['dCat','fCat'].forEach(id => {
+    const el = document.getElementById(id);
+    cats.forEach(c => { const o=document.createElement('option'); o.value=c.v; o.textContent=c.l; el.appendChild(o); });
+  });
+  fillCrops('dCrop','veg'); fillCrops('fCrop','veg');
+  fillStates(['dState','fState','cState']);
+  ['dState','fState'].forEach(id => document.getElementById(id).value='Uttar Pradesh');
+  document.getElementById('cState').value='Uttar Pradesh';
+  fillMandis('dMandi','Uttar Pradesh'); fillMandis('fMandi','Uttar Pradesh');
+  setTimeout(()=>{ trySet('dMandi','Agra'); trySet('fMandi','Agra'); },100);
+  fillCrops('aCrop','veg');
+}
+
+function trySet(id, val) { const el=document.getElementById(id); if(el) el.value=val; }
+
+async function fillCrops(id, cat) {
+  const el = document.getElementById(id); if(!el) return;
+  el.innerHTML = '';
+  const crops = cropsByCategory[cat] || allCrops.slice(0,28);
+  crops.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; el.appendChild(o); });
+}
+
+function fillStates(ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    el.innerHTML = '';
+    allStates.forEach(s => { const o=document.createElement('option'); o.value=s; o.textContent=s; el.appendChild(o); });
+  });
+}
+
+async function fillMandis(id, state) {
+  const el = document.getElementById(id); if(!el) return;
+  el.innerHTML = '<option>Loading...</option>';
+  const data = await api(`/prices/mandis?state=${encodeURIComponent(state)}`);
+  el.innerHTML = '';
+  (data?.mandis||['Agra']).forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=m; el.appendChild(o); });
+}
+
+function initProfitCrop() {
+  const el = document.getElementById('pCrop'); if(!el) return;
+  allCrops.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; el.appendChild(o); });
+  el.value='Onion';
+  setTimeout(calcProfit, 300);
+}
+
+// ── PAGE NAV ────────────────────────────────────────────────
+const PAGE_META = {
+  dashboard: {title:'Dashboard', crumb:'Overview'},
+  forecast:  {title:'Price Forecast', crumb:'Predictions & Analysis'},
+  map:       {title:'Mandi Map', crumb:'Regional Price Map'},
+  compare:   {title:'Compare Crops', crumb:'Multi-Crop Comparison'},
+  chatbot:   {title:'AI Assistant', crumb:'AI Farm Assistant'},
+  profit:    {title:'Profit Calculator', crumb:'P&L Estimation'},
+  msp:       {title:'MSP Tracker', crumb:'Government Support Price'},
+  alerts:    {title:'Alerts', crumb:'Price Notifications'},
+  reports:   {title:'Reports', crumb:'Download Reports'},
+  admin:     {title:'Admin Panel', crumb:'System Management'},
+};
+
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  const m = PAGE_META[id]||{title:id,crumb:''};
+  document.getElementById('pgTitle').textContent = m.title;
+  document.getElementById('pgCrumb').textContent = m.crumb;
+  if(id==='forecast') loadForecast();
+  if(id==='map')      { setTimeout(()=>{ initMap(); loadMap(); },200); }
+  if(id==='compare')  loadCompare();
+  if(id==='admin')    loadAdmin();
+}
+
+// ── DASHBOARD ───────────────────────────────────────────────
+async function onDCatChange() { await fillCrops('dCrop', document.getElementById('dCat').value); onDChange(); }
+async function onDStateChange() { await fillMandis('dMandi', document.getElementById('dState').value); onDChange(); }
+
+async function onDChange() {
+  const crop  = document.getElementById('dCrop').value;
+  const mandi = document.getElementById('dMandi').value;
+  if(!crop || !mandi) return;
+  loadDashboard();
+}
+
+function setH(el, v) {
+  document.querySelectorAll('.hp').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  onDChange();
+}
+
+async function loadDashboard() {
+  const crop  = document.getElementById('dCrop')?.value  || 'Onion';
+  const mandi = document.getElementById('dMandi')?.value || 'Agra';
+  document.getElementById('dChartTitle').textContent = `${crop} — ${mandi} (₹/quintal)`;
+
+  const [curr, fc] = await Promise.all([
+    api(`/prices/current?crop=${encodeURIComponent(crop)}&mandi=${encodeURIComponent(mandi)}`),
+    api(`/forecast/predict?crop=${encodeURIComponent(crop)}&mandi=${encodeURIComponent(mandi)}&days=7&model=random_forest`)
+  ]);
+
+  if(curr) {
+    document.getElementById('dPrice').textContent = '₹'+curr.price.toLocaleString('en-IN');
+    const chg = curr.change;
+    document.getElementById('dChg').textContent = (chg>=0?'+':'')+'₹'+Math.abs(chg).toLocaleString('en-IN')+' vs yesterday';
+    document.getElementById('dChg').className = 'ms '+(chg>=0?'up':'down');
+    const vol = curr.volatility;
+    document.getElementById('dVol').textContent = vol.level;
+    document.getElementById('dVol').style.color = vol.level==='Low'?'var(--green)':vol.level==='High'?'var(--red)':'var(--amber)';
+    document.getElementById('dVolSub').textContent = `Std dev: ±₹${vol.std_dev.toLocaleString('en-IN')}`;
+  }
+
+  if(fc) {
+    const last = fc.predictions[fc.predictions.length-1];
+    const fcp = last?.price || 0;
+    const pct = curr ? ((fcp-curr.price)/curr.price*100).toFixed(1) : 0;
+    document.getElementById('dFc').textContent = '₹'+fcp.toLocaleString('en-IN');
+    document.getElementById('dFcChg').textContent = (pct>=0?'+':'')+pct+'% expected';
+    document.getElementById('dFcChg').className = 'ms '+(pct>=0?'up':'down');
+    document.getElementById('dAcc').textContent = fc.metrics.accuracy+'%';
+    document.getElementById('dMetrics').textContent = `MAE: ${fc.metrics.mae} · RMSE: ${fc.metrics.rmse}`;
+    renderDashChart(fc);
+    renderRecommendations(fc, curr?.price||0);
+    renderVolBars();
+  }
+}
+
+function renderDashChart(fc) {
+  const hist = fc.historical || [];
+  const labels = [...hist.map(h=>h.date.slice(5)), ...fc.predictions.slice(0,5).map(p=>p.date.slice(5))];
+  const histData = hist.map(h=>h.price);
+  const last = histData[histData.length-1];
+  const fcData = Array(hist.length-1).fill(null).concat([last, ...fc.predictions.slice(0,5).map(p=>p.price)]);
+  if(dashChart) dashChart.destroy();
+  dashChart = mkChart('dashChart', labels,[
+    {label:'Historical', data:[...histData,...Array(5).fill(null)], color:'#60a5fa', dash:false, fill:true},
+    {label:'Forecast',   data:fcData, color:'#4ade80', dash:true, fill:true}
+  ], 190);
+}
+
+function renderRecommendations(fc, current) {
+  const rec = fc.recommendation;
+  const recs = [
+    {crop:document.getElementById('dCrop').value, action:rec.action, desc:rec.reason, price:rec.best_price},
+    {crop:'Tomato', action:'Hold', desc:'Prices rising next week — demand up', price:1840},
+    {crop:'Arhar Dal (Tur)', action:'Wait', desc:'Oversupply — wait 10 days', price:7200},
+    {crop:'Banana', action:'Sell Now', desc:'Demand high in metros this week', price:1200},
+  ];
+  const tagClass = a => a==='Hold'?'t-h':a.includes('Wait')?'t-w':'t-s';
+  const dotClass = a => a==='Hold'?'d-h':a.includes('Wait')?'d-w':'d-s';
+  const priceColor = a => a==='Hold'?'warn-c':a.includes('Wait')?'down':'up';
+  document.getElementById('recList').innerHTML = recs.map(r=>`
+    <div class="ri">
+      <div class="rdot ${dotClass(r.action)}"></div>
+      <div class="rb"><div class="rn">${r.crop}</div><div class="rd">${r.desc}</div></div>
+      <span class="rtag ${tagClass(r.action)}">${r.action.toUpperCase()}</span>
+      <div class="rp ${priceColor(r.action)}">₹${(r.price||0).toLocaleString('en-IN')}</div>
+    </div>`).join('');
+}
+
+async function renderVolBars() {
+  const crops = ['Onion','Tomato','Potato','Arhar Dal (Tur)','Banana','Wheat','Capsicum','Mango'];
+  const vols  = [62,84,28,32,55,20,78,45];
+  const types = ['vm','vh','vl','vl','vm','vl','vh','vm'];
+  document.getElementById('volBars').innerHTML = crops.map((c,i)=>`
+    <div class="vrow"><span class="vlbl">${c}</span><div class="vtrk"><div class="vfil ${types[i]}" style="width:${vols[i]}%"></div></div><span class="vpc">${vols[i]}%</span></div>`).join('');
+}
+
+async function loadWeather() {
+  const data = await api('/weather/all');
+  const cities = data?.cities || [];
+  const box = document.getElementById('weatherBox');
+  if(!box) return;
+  box.innerHTML = cities.slice(0,7).map(c=>`
+    <div class="wr">
+      <span class="wl">${c.city}</span>
+      <span class="wv">${c.temp}°C ${c.condition}</span>
+      <span class="wi ${c.impact_type==='positive'?'wi-p':c.impact_type==='negative'?'wi-n':'wi-u'}">${c.impact}</span>
+    </div>`).join('');
+}
+
+function renderNews() {
+  const news = [
+    {title:'Onion export ban lifted',desc:'Govt removes restrictions — expect price rise · 2h ago',color:'var(--green)'},
+    {title:'IMD forecasts heavy rains',desc:'Maharashtra & Karnataka excess monsoon · 5h ago',color:'var(--amber)'},
+    {title:'MSP for Kharif 2025 raised',desc:'Cabinet approves 5-8% MSP hike for pulses · 1d ago',color:'var(--blue)'},
+    {title:'Tomato supply crunch in AP',desc:'Crop damage pushes tomato prices up 40% · 1d ago',color:'var(--red)'},
+  ];
+  const box = document.getElementById('newsBox'); if(!box) return;
+  box.innerHTML = news.map(n=>`
+    <div class="ni" style="border-left:2px solid ${n.color}">
+      <div class="nt">${n.title}</div><div class="nd">${n.desc}</div>
+    </div>`).join('');
+}
+
+// ── FORECAST ────────────────────────────────────────────────
+async function onFCatChange() { await fillCrops('fCrop', document.getElementById('fCat').value); loadForecast(); }
+async function onFStateChange() { await fillMandis('fMandi', document.getElementById('fState').value); loadForecast(); }
+
+async function loadForecast() {
+  const crop  = document.getElementById('fCrop')?.value  || 'Onion';
+  const mandi = document.getElementById('fMandi')?.value || 'Agra';
+  const model = document.getElementById('fModel')?.value || 'random_forest';
+  document.getElementById('fChartTitle').textContent = `30-Day Forecast — ${crop} · ${mandi}`;
+  const data = await api(`/forecast/predict?crop=${encodeURIComponent(crop)}&mandi=${encodeURIComponent(mandi)}&days=30&model=${model}`);
+  if(!data) return;
+  const p = data.predictions;
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('f1d', '₹'+(p[0]?.price||0).toLocaleString('en-IN'));
+  set('f7d', '₹'+(p[6]?.price||0).toLocaleString('en-IN'));
+  set('f30d','₹'+(p[p.length-1]?.price||0).toLocaleString('en-IN'));
+  const cur = data.current_price;
+  const pct = v => ((v-cur)/cur*100).toFixed(1);
+  set('f1c', (pct(p[0]?.price||cur)>=0?'+':'')+pct(p[0]?.price||cur)+'%');
+  set('f7c', (pct(p[6]?.price||cur)>=0?'+':'')+pct(p[6]?.price||cur)+'%');
+  set('f30c',(pct(p[p.length-1]?.price||cur)>=0?'+':'')+pct(p[p.length-1]?.price||cur)+'%');
+  set('fConf', data.metrics.accuracy+'%');
+  set('fMetrics', `MAE: ${data.metrics.mae} · RMSE: ${data.metrics.rmse}`);
+  set('mMAE', data.metrics.mae); set('mRMSE', data.metrics.rmse);
+  set('mR2', data.metrics.r2); set('mAcc', data.metrics.accuracy+'%');
+  const sd = data.supply_demand;
+  document.getElementById('supplyPct').textContent = sd.supply_pct+'%';
+  document.getElementById('demandPct').textContent = sd.demand_pct+'%';
+  document.getElementById('supplyBar').style.width = sd.supply_pct+'%';
+  document.getElementById('demandBar').style.width = sd.demand_pct+'%';
+  document.getElementById('sdStatus').textContent = sd.outlook;
+  document.getElementById('sdStatus').style.color = sd.supply_pct<sd.demand_pct?'var(--amber)':'var(--blue)';
+  const rec = data.recommendation;
+  document.getElementById('fcRec').innerHTML = `<strong style="color:var(--green)">${rec.action}</strong><br>${rec.reason}`;
+  renderFcChart(data);
+  loadProfitChart(data);
+}
+
+function renderFcChart(data) {
+  const hist = data.historical||[];
+  const pred = data.predictions||[];
+  const labels = [...hist.map(h=>h.date.slice(5)), ...pred.slice(0,15).map(p=>p.date.slice(5))];
+  const hData  = hist.map(h=>h.price).concat(Array(15).fill(null));
+  const last   = hist[hist.length-1]?.price;
+  const fData  = Array(hist.length-1).fill(null).concat([last,...pred.slice(0,15).map(p=>p.price)]);
+  if(fcChart) fcChart.destroy();
+  fcChart = mkChart('fcChart', labels,[
+    {label:'Historical',data:hData,color:'#60a5fa',dash:false,fill:false},
+    {label:'Forecast',data:fData,color:'#4ade80',dash:true,fill:false}
+  ], 250);
+}
+
+// ── MAP ─────────────────────────────────────────────────────
+function initMap() {
+  if(leafletMap) return;
+  leafletMap = L.map('leafletMap').setView([20.5937, 78.9629], 4);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; OpenStreetMap &copy; CartoDB', maxZoom:18
+  }).addTo(leafletMap);
+}
+
+async function loadMap() {
+  const crop = document.getElementById('mapCrop')?.value || 'Onion';
+  document.getElementById('mapTitle').textContent = `India — Mandi Price Map (${crop})`;
+  document.getElementById('mapCropLabel')?.remove?.();
+  const data = await api(`/prices/all-mandis?crop=${encodeURIComponent(crop)}`);
+  if(!data || !leafletMap) return;
+  mapMarkers.forEach(m=>m.remove());
+  mapMarkers = [];
+  const mandis = data.mandis||[];
+  mandis.forEach(m => {
+    const col = m.price>3000?'#4ade80':m.price>1500?'#fbbf24':'#f87171';
+    const circle = L.circleMarker([m.lat,m.lng],{
+      radius:8, fillColor:col, color:col, weight:2,
+      opacity:0.9, fillOpacity:0.75
+    }).addTo(leafletMap);
+    circle.bindPopup(`<b style="color:#0a0f0a">${m.mandi}</b><br>₹${m.price.toLocaleString('en-IN')}/qtl<br>Change: ${m.change_pct>0?'+':''}${m.change_pct}%`);
+    mapMarkers.push(circle);
+  });
+  const list = document.getElementById('mandiList');
+  if(list) list.innerHTML = mandis.slice(0,12).map(m=>`
+    <div class="wr">
+      <span class="wl">${m.mandi}</span>
+      <span class="wv" style="color:${m.price>3000?'var(--green)':m.price>1500?'var(--amber)':'var(--red)'}"">₹${m.price.toLocaleString('en-IN')}</span>
+      <span class="wi ${m.change_pct>=0?'wi-p':'wi-n'}">${m.change_pct>=0?'+':''}${m.change_pct}%</span>
+    </div>`).join('');
+}
+
+// ── COMPARE ─────────────────────────────────────────────────
+async function loadCompare() {
+  const state = document.getElementById('cState')?.value || 'Uttar Pradesh';
+  const data = await api(`/prices/compare?state=${encodeURIComponent(state)}`);
+  if(!data) return;
+  const crops = data.crops||[];
+  const top8  = crops.slice(0,8);
+  if(cmpChart) cmpChart.destroy();
+  const colors = ['#4ade80','#f87171','#fbbf24','#60a5fa','#c084fc','#fb923c','#34d399','#f472b6'];
+  const months = ['Jan','Feb','Mar','Apr'];
+  cmpChart = new Chart(document.getElementById('cmpChart'), {
+    type:'line',
+    data:{labels:months,datasets:top8.map((c,i)=>({
+      label:c.crop,
+      data:months.map(()=>Math.round(c.price*(0.9+Math.random()*0.2))),
+      borderColor:colors[i],borderWidth:1.5,pointRadius:3,pointBackgroundColor:colors[i],tension:.4,fill:false
+    }))},
+    options:chartOpts(230)
+  });
+  const catLabel = {veg:'Vegetable',fruit:'Fruit',pulse:'Pulse',spice:'Spice',cereal:'Cereal'};
+  document.getElementById('cmpBody').innerHTML = crops.map(c=>`<tr>
+    <td style="color:var(--text);font-weight:600">${c.crop}</td>
+    <td><span style="font-size:10px;padding:2px 6px;border-radius:6px;background:var(--gdim);color:var(--green)">${catLabel[c.category]||c.category}</span></td>
+    <td>₹${(c.price||0).toLocaleString('en-IN')}</td>
+    <td class="${c.change_7d>=0?'up':'down'}">${c.change_7d>=0?'+':''}${c.change_7d}%</td>
+    <td class="${c.change_30d>=0?'up':'down'}">${c.change_30d>=0?'+':''}${c.change_30d}%</td>
+    <td style="color:${c.volatility==='Low'?'var(--green)':c.volatility==='High'?'var(--red)':'var(--amber)'}">${c.volatility}</td>
+    <td style="font-size:11px">${c.msp?'₹'+c.msp.toLocaleString('en-IN'):'—'}</td>
+    <td><span class="rtag ${c.recommendation==='Sell Now'?'t-s':c.recommendation==='Hold'?'t-h':'t-w'}">${c.recommendation.toUpperCase()}</span></td>
+  </tr>`).join('');
+}
+
+// ── CHATBOT ─────────────────────────────────────────────────
+function setLang(el, lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lb').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  const greets = {
+    en:'Namaste! I\'m your AI farm assistant. Ask me about crop prices, best time to sell, weather impact, or mandi rates.',
+    hi:'नमस्ते! मैं आपका AI कृषि सहायक हूं। फसल की कीमत, बेचने का सही समय, मंडी दर के बारे में पूछें।'
+  };
+  document.getElementById('greetMsg').textContent = greets[lang];
+}
+
+async function doChat() {
+  const inp = document.getElementById('chatInp');
+  const msg = inp.value.trim(); if(!msg) return;
+  addBubble(msg,'usr'); inp.value='';
+  const data = await apiPost('/chatbot/chat', {message:msg, lang:currentLang});
+  addBubble(data?.response || 'Sorry, I could not process that. Please try again.','bot');
+}
+
+function addBubble(text, who) {
+  const box = document.getElementById('chatBox');
+  const b = document.createElement('div');
+  b.className = 'bbl '+(who==='bot'?'b-bot':'b-usr');
+  b.textContent = text;
+  box.appendChild(b);
+  box.scrollTop = box.scrollHeight;
+}
+
+const QQ = ['When should I sell my onions?','Price of tomato next week?','Which crop has highest demand?','What is MSP for wheat?','Will potato prices rise?','Best crop to grow this season?','How does weather affect prices?','Which mandi has best onion price?'];
+function renderQuickQs() {
+  document.getElementById('quickQs').innerHTML = QQ.map(q=>
+    `<button class="tb-btn" style="text-align:left;padding:9px 12px;font-size:12px" onclick="document.getElementById('chatInp').value='${q}';doChat()">${q}</button>`
+  ).join('');
+}
+
+// ── PROFIT CALCULATOR ───────────────────────────────────────
+async function calcProfit() {
+  const crop      = document.getElementById('pCrop')?.value     || 'Onion';
+  const qty       = parseFloat(document.getElementById('pQty')?.value)       || 50;
+  const cost      = parseFloat(document.getElementById('pCost')?.value)      || 1200;
+  const transport = parseFloat(document.getElementById('pTransport')?.value) || 2000;
+  const storeDays = parseFloat(document.getElementById('pStoreDays')?.value) || 0;
+  const storeCost = parseFloat(document.getElementById('pStoreCost')?.value) || 15;
+  const curr = await api(`/prices/current?crop=${encodeURIComponent(crop)}&mandi=Agra`);
+  const price = curr?.price || 2000;
+  const revenue   = Math.round(qty * price);
+  const totalCost = Math.round(qty*cost + transport + qty*storeDays*storeCost);
+  const profit    = revenue - totalCost;
+  const margin    = revenue>0?((profit/revenue)*100).toFixed(1):'0';
+  const bestPrice = Math.round(price*1.10);
+  const bestProfit = Math.round(qty*bestPrice - totalCost);
+  document.getElementById('profitVal').textContent = '₹'+Math.abs(profit).toLocaleString('en-IN');
+  document.getElementById('profitVal').className = 'pval '+(profit>=0?'up':'down');
+  document.getElementById('pRev').textContent = '₹'+revenue.toLocaleString('en-IN');
+  document.getElementById('pCostOut').textContent = '₹'+totalCost.toLocaleString('en-IN');
+  document.getElementById('pMargin').textContent = margin+'%';
+  document.getElementById('profitRec').textContent = profit>=0
+    ? `Hold 5 days → sell at ₹${bestPrice.toLocaleString('en-IN')}/qtl for max profit ₹${bestProfit.toLocaleString('en-IN')}`
+    : `Current price below cost. Wait for price to reach ₹${Math.round(cost*1.15).toLocaleString('en-IN')}/qtl.`;
+}
+
+function loadProfitChart(forecastData) {
+  const preds  = (forecastData?.predictions||[]).slice(0,10);
+  const labels = preds.map(p=>p.date.slice(5));
+  const cost   = 1200*50 + 2000;
+  const profits = preds.map(p=>Math.round(50*p.price - cost));
+  if(profitChartObj) profitChartObj.destroy();
+  profitChartObj = mkChart('profitChart', labels,[
+    {label:'Est. Profit (₹)', data:profits, color:'#4ade80', dash:false, fill:true}
+  ], 240);
+}
+
+// ── MSP ─────────────────────────────────────────────────────
+async function loadMSP() {
+  const data = await api('/prices/msp');
+  const crops = data?.crops || [];
+  const el = document.getElementById('mspList'); if(!el) return;
+  el.innerHTML = crops.map(c => {
+    const maxP = Math.max(c.msp, c.market_price)*1.1;
+    const mktPct = Math.min((c.market_price/maxP)*100,98);
+    const mspPct = Math.min((c.msp/maxP)*100,98);
+    const col = c.above_msp?'var(--green)':'var(--red)';
+    return `<div class="msp-row">
+      <div class="msp-crop">${c.crop}</div>
+      <div class="msp-bw">
+        <div class="msp-bm" style="width:${mktPct}%;background:${col};opacity:.7"></div>
+        <div class="msp-ln" style="left:${mspPct}%"></div>
+      </div>
+      <div class="msp-ps">
+        <span class="msp-mp" style="color:${col}">₹${c.market_price.toLocaleString('en-IN')}</span>
+        <span class="msp-gp">MSP ₹${c.msp.toLocaleString('en-IN')}</span>
+      </div>
+      <span class="msp-st ${c.above_msp?'msp-a':'msp-b'}">${c.above_msp?'Above MSP':'Below MSP'}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── ALERTS ──────────────────────────────────────────────────
+async function loadAlerts() {
+  const el = document.getElementById('aCrop');
+  if(el && el.options.length===0) {
+    allCrops.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;el.appendChild(o);});
+  }
+  await renderAlerts();
+}
+
+async function renderAlerts() {
+  const data = await api('/alerts/');
+  const alerts = data?.alerts || [];
+  document.getElementById('alertBadge').textContent = alerts.length;
+  document.getElementById('alertTopBadge').textContent = alerts.length+' Alerts';
+  const el = document.getElementById('alertsList'); if(!el) return;
+  if(!alerts.length){ el.innerHTML='<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">No active alerts. Add one above.</div>'; return; }
+  el.innerHTML = alerts.map(a=>`
+    <div class="aitem">
+      <div class="aico ai-g"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 2C8 2 4 4 4 8V11H12V8C12 4 8 2 8 2Z" stroke="currentColor" stroke-width="1.3"/></svg></div>
+      <div class="abdy">
+        <div class="atitle">${a.crop} — ${a.alert_type} ₹${(a.threshold||0).toLocaleString('en-IN')}</div>
+        <div class="adesc">Alert triggers when ${a.crop} price ${a.alert_type.toLowerCase()} ₹${(a.threshold||0).toLocaleString('en-IN')}/qtl</div>
+        <div class="atime">Set ${a.created_at}</div>
+      </div>
+      <button class="adel" onclick="deleteAlert(${a.id})">Remove</button>
+    </div>`).join('');
+}
+
+async function addAlert() {
+  const crop   = document.getElementById('aCrop').value;
+  const type   = document.getElementById('aType').value;
+  const thresh = parseFloat(document.getElementById('aThresh').value)||0;
+  if(!thresh){ showToast('Please enter a price threshold'); return; }
+  const res = await apiPost('/alerts/', {crop, alert_type:type, threshold:thresh});
+  if(res?.alert){ await renderAlerts(); showToast(`Alert set for ${crop}`); document.getElementById('aThresh').value=''; }
+}
+
+async function deleteAlert(id) {
+  const r = await fetch(`${API}/alerts/${id}`, {method:'DELETE'});
+  if(r.ok){ await renderAlerts(); showToast('Alert removed'); }
+}
+
+// ── REPORTS ─────────────────────────────────────────────────
+async function loadReports() {
+  const data = await api('/reports/list');
+  const rpts = data?.reports || [];
+  const el = document.getElementById('reportsList'); if(!el) return;
+  el.innerHTML = rpts.map(r=>`
+    <div class="rcard">
+      <div class="rico">📊</div>
+      <div class="rbdy"><div class="rname">${r.name}</div><div class="rmeta">${r.crop} · ${r.type} · ${r.format}</div></div>
+      <button class="rdl" onclick="downloadReport('${r.crop}','${r.type}')">Download</button>
+    </div>`).join('');
+  const rCrop = document.getElementById('rCrop');
+  if(rCrop && rCrop.options.length===0) allCrops.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;rCrop.appendChild(o);});
+}
+
+async function generateReport() {
+  const crop = document.getElementById('rCrop')?.value || 'All';
+  const type = document.getElementById('rType')?.value || 'Price Summary';
+  downloadReport(crop, type);
+}
+
+function downloadReport(crop='All', type='Price Summary') {
+  const url = `${API}/reports/download?crop=${encodeURIComponent(crop)}&report_type=${encodeURIComponent(type)}`;
+  const a = document.createElement('a'); a.href=url; a.download='AgriPrice_Report.csv'; a.click();
+  showToast('Downloading report...');
+}
+
+// ── ADMIN ────────────────────────────────────────────────────
+async function loadAdmin() {
+  const [stats, activity, perf] = await Promise.all([
+    api('/admin/stats'), api('/admin/activity'), api('/admin/model-performance')
+  ]);
+  if(stats) {
+    document.getElementById('adminStats').innerHTML = [
+      {l:'Total Users',   v:stats.total_users.toLocaleString()},
+      {l:'Crops Tracked', v:stats.total_crops},
+      {l:'Mandis Covered',v:stats.mandis_covered},
+      {l:'Uptime',        v:stats.uptime_pct+'%'},
+    ].map(s=>`<div class="asc"><div class="ascv">${s.v}</div><div class="ascl">${s.l}</div></div>`).join('');
+  }
+  if(activity) {
+    document.getElementById('activityLog').innerHTML = (activity.activities||[]).map(a=>
+      `<div class="actr"><div class="adot"></div><div class="atxt">${a.action}</div><span class="atm">${a.time}</span></div>`
+    ).join('');
+  }
+  if(perf && perf.months) {
+    if(adminChart) adminChart.destroy();
+    adminChart = new Chart(document.getElementById('adminChart'),{
+      type:'line',
+      data:{labels:perf.months,datasets:[
+        {label:'Random Forest',data:perf.random_forest,borderColor:'#4ade80',borderWidth:1.5,pointRadius:3,pointBackgroundColor:'#4ade80',tension:.4,fill:false},
+        {label:'LSTM',         data:perf.lstm,         borderColor:'#60a5fa',borderWidth:1.5,pointRadius:3,pointBackgroundColor:'#60a5fa',tension:.4,fill:false},
+        {label:'Linear Reg',   data:perf.linear_reg,   borderColor:'#fbbf24',borderWidth:1.5,pointRadius:3,pointBackgroundColor:'#fbbf24',tension:.4,fill:false},
+      ]},
+      options:{...chartOpts(180),scales:{...chartOpts(180).scales,y:{...chartOpts(180).scales.y,ticks:{...chartOpts(180).scales.y.ticks,callback:v=>v+'%'}}}}
+    });
+  }
+}
+
+// ── CHART HELPER ─────────────────────────────────────────────
+function chartOpts(h) {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{labels:{color:'#6b8f6b',font:{size:10,family:'JetBrains Mono'},boxWidth:12,padding:10}},
+      tooltip:{mode:'index',intersect:false,backgroundColor:'#0f1a0f',titleColor:'#4ade80',bodyColor:'#a8c5a0',borderColor:'rgba(74,222,128,.3)',borderWidth:1}
+    },
+    scales:{
+      x:{ticks:{color:'#6b8f6b',font:{size:10}},grid:{color:'rgba(74,222,128,.05)'}},
+      y:{ticks:{color:'#6b8f6b',font:{size:10,family:'JetBrains Mono'},callback:v=>'₹'+Math.round(v).toLocaleString('en-IN')},grid:{color:'rgba(74,222,128,.05)'}}
+    }
+  };
+}
+
+function mkChart(id, labels, datasets, h) {
+  const ctx = document.getElementById(id); if(!ctx) return null;
+  return new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:datasets.map(d=>({
+      label:d.label, data:d.data,
+      borderColor:d.color,
+      backgroundColor:d.fill?d.color.replace(')',',0.07)').replace('#','rgba(').replace(/([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i,(_,r,g,b)=>`${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)}`):undefined,
+      borderWidth:1.8, borderDash:d.dash?[5,4]:undefined,
+      pointRadius:3, pointBackgroundColor:d.color,
+      fill:d.fill, tension:.4, spanGaps:false
+    }))},
+    options:chartOpts(h)
+  });
+}
+
+// ── TOAST ────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
