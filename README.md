@@ -8,7 +8,7 @@ AI/ML-powered agricultural price forecasting system for Indian farmers.
 
 ```
 APS/
-├── backend/
+├── backend/                 ← keep for local dev, Vercel ignores it
 │   ├── main.py              ← FastAPI app entry point
 │   ├── requirements.txt     ← Python dependencies
 │   ├── routers/
@@ -27,7 +27,10 @@ APS/
 │   └── models/
 │       └── database.py      ← SQLAlchemy DB models
 └── frontend/
-    └── index.html           ← Complete frontend (single file)
+│   └── index.html           ← Complete frontend (single file)
+├── api/
+│   ├── index.py             ← all backend code in one file for deploying backend on vercel
+│   ├── requirements.txt     ← only 3 packages needed
 ```
 
 ---
@@ -142,3 +145,7 @@ Password: farmer123
 - **Database**: SQLite (dev) / PostgreSQL (prod)
 - **Frontend**: Vanilla HTML/CSS/JS + Chart.js + Leaflet.js
 - **Fonts**: Sora + JetBrains Mono
+
+---
+
+*Built with ❤️ in India By MAHESH YADAV— APS*
